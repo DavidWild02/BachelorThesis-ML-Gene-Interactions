@@ -1,0 +1,6 @@
+# ignore data folder because files are so big. 
+/data
+
+/.venv
+/__pycache__
+
