@@ -25,21 +25,21 @@ class MaskedLinearRegression(nn.Module):
 
 class MaskedRidgeRegressor(BaseEstimator, RegressorMixin):
     def __init__(self, mask: np.ndarray, ridge_lambda=0.001, epochs=1000, lr=0.001):
-        self.ridge_lambda = 0.001
-        self.epochs = 1000
+        self.mask = mask
+        self.ridge_lambda = ridge_lambda
+        self.epochs = epochs
         self.lr = lr
-        self._param_names = ["ridge_lambda", "epochs", "lr"]
+        self._param_names = ["mask", "ridge_lambda", "epochs", "lr"]
 
-        self._mask = torch.Tensor(mask)
         self._init_model()
 
     def _init_model(self):
-        self._model = MaskedLinearRegression(self._mask)
+        self._model = MaskedLinearRegression(torch.Tensor(self.mask))
         
     def fit(self, X: np.ndarray | torch.Tensor, y: np.ndarray | torch.Tensor) -> None:
         input_dim = X.shape[1]
         output_dim = y.shape[1]
-        assert (self._mask.shape == (input_dim, output_dim))
+        assert (self.mask.shape == (input_dim, output_dim))
         assert (X.shape[0] == y.shape[0])
 
         X = torch.Tensor(X)
@@ -68,12 +68,14 @@ class MaskedRidgeRegressor(BaseEstimator, RegressorMixin):
         self.W_ = self._model.get_masked_weight_matrix().detach().numpy()
 
     def predict(self, X) -> np.ndarray:
-        input_dim = self._mask.shape[0]
+        input_dim = self.mask.shape[0]
         assert (X.shape[1] == input_dim)
+
+        X = torch.Tensor(X)
 
         self._model.eval()
         y_pred = self._model(X)
-        return y_pred
+        return y_pred.detach().numpy()
 
     def get_params(self, deep: bool = True) -> dict:
         params = { param_name: getattr(self, param_name) for param_name in self._param_names }
