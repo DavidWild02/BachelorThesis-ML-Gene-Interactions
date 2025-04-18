@@ -13,10 +13,13 @@ class MaskedLinearRegression(nn.Module):
 
         weights = nn.Parameter(torch.rand(mask.shape))
         self.register_parameter("weights", weights)
+        
+        bias = nn.Parameter(torch.rand(mask.shape[1]))
+        self.register_parameter("bias", bias)
 
     def forward(self, x: torch.Tensor):
         masked_weights = self.weights * self.mask
-        out = x @ masked_weights
+        out = x @ masked_weights + self.bias
         return out
 
     def get_masked_weight_matrix(self) -> torch.Tensor:
