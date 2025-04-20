@@ -6,7 +6,7 @@ from sklearn.base import BaseEstimator, RegressorMixin
 
 
 class MaskedLinearRegression(nn.Module):
-    def __init__(self, mask: torch.Tensor):
+    def __init__(self, mask: torch.Tensor, use_bias: bool = True):
         super().__init__()
 
         self.register_buffer("mask", mask)
@@ -14,12 +14,16 @@ class MaskedLinearRegression(nn.Module):
         weights = nn.Parameter(torch.rand(mask.shape))
         self.register_parameter("weights", weights)
         
-        bias = nn.Parameter(torch.rand(mask.shape[1]))
-        self.register_parameter("bias", bias)
+        self._use_bias = use_bias
+        if use_bias:
+            bias = nn.Parameter(torch.rand(mask.shape[1]))
+            self.register_parameter("bias", bias)
 
     def forward(self, x: torch.Tensor):
         masked_weights = self.weights * self.mask
-        out = x @ masked_weights + self.bias
+        out = x @ masked_weights 
+        if self._use_bias:
+            out += self.bias
         return out
 
     def get_masked_weight_matrix(self) -> torch.Tensor:
@@ -27,17 +31,18 @@ class MaskedLinearRegression(nn.Module):
     
 
 class MaskedRidgeRegressor(BaseEstimator, RegressorMixin):
-    def __init__(self, mask: np.ndarray, ridge_lambda=0.001, epochs=1000, lr=0.001):
+    def __init__(self, mask: np.ndarray, use_bias=True, ridge_lambda=0.001, epochs=1000, lr=0.001):
         self.mask = mask
         self.ridge_lambda = ridge_lambda
         self.epochs = epochs
         self.lr = lr
-        self._param_names = ["mask", "ridge_lambda", "epochs", "lr"]
+        self.use_bias = use_bias
+        self._param_names = ["use_bias", "mask", "ridge_lambda", "epochs", "lr"]
 
         self._init_model()
 
     def _init_model(self):
-        self._model = MaskedLinearRegression(torch.Tensor(self.mask))
+        self._model = MaskedLinearRegression(torch.Tensor(self.mask), self.use_bias)
         
     def fit(self, X: np.ndarray | torch.Tensor, y: np.ndarray | torch.Tensor) -> None:
         input_dim = X.shape[1]
