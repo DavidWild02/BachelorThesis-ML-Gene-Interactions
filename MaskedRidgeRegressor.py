@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import torch
 from torch import nn
 from tqdm import tqdm
@@ -76,6 +77,9 @@ class MaskedRidgeRegressor(BaseEstimator, RegressorMixin):
         self.W_ = self._model.get_masked_weight_matrix().detach().numpy()
 
     def predict(self, X) -> np.ndarray:
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+
         input_dim = self.mask.shape[0]
         assert (X.shape[1] == input_dim)
 
