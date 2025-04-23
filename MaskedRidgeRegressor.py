@@ -7,7 +7,7 @@ from sklearn.base import BaseEstimator, RegressorMixin
 
 
 class MaskedLinearRegression(nn.Module):
-    def __init__(self, mask: torch.Tensor, use_bias: bool = True):
+    def __init__(self, mask: torch.Tensor, use_bias: bool = False):
         super().__init__()
 
         self.register_buffer("mask", mask)
@@ -32,7 +32,7 @@ class MaskedLinearRegression(nn.Module):
     
 
 class MaskedRidgeRegressor(BaseEstimator, RegressorMixin):
-    def __init__(self, mask: np.ndarray, use_bias=True, ridge_lambda=0.001, epochs=1000, lr=0.001):
+    def __init__(self, mask: np.ndarray, use_bias=False, ridge_lambda=0.001, epochs=1000, lr=0.001):
         self.mask = mask
         self.ridge_lambda = ridge_lambda
         self.epochs = epochs
