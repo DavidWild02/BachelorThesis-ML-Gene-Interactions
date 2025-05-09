@@ -2,6 +2,7 @@ from sklearn.metrics import PredictionErrorDisplay
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import numpy as np
 
 
 def show_score_distribution(df_gen_scores, column_name):
@@ -30,10 +31,27 @@ def display_gene_residual_plots(y: pd.DataFrame, y_pred: pd.DataFrame, selected_
 
     plt.show()
 
-def display_gene_expression_distribution(data: pd.DataFrame, selected_genes):
-    n_genes = len(selected_genes)
-    _, axes = plt.subplots(nrows=n_genes, figsize=(8, 6*n_genes)) 
+def display_gene_expression_distribution(adata, gene, by_cluster=True):
+    plt.title(f"Gene expression distribution {gene}")
+    
+    df_genes = adata.to_df()
 
-    for i, gene_name in enumerate(selected_genes):   
-        axes[i].set_title(f"Gene expression distribution {gene_name}")
-        sns.kdeplot(data.loc[:, gene_name], ax=axes[i])
+    if not by_cluster:
+        sns.kdeplot(df_genes.loc[:, gene])
+    else:
+        cluster_indices = adata.obs["clusters"].values
+        colors = adata.uns["clusters_colors"]
+        num_clusters = len(colors)
+        for i in range(num_clusters):
+            sns.kdeplot(df_genes.loc[cluster_indices == str(i), gene], color=colors[i], label=f"Cluster {i}")
+        plt.legend()
+    plt.show()
+    
+    
+        
+def calculate_cluster_statistics_for_gene(adata, gene: str):
+    cluster_indices = adata.obs["clusters"].values
+    clusters = adata.to_df().groupby(cluster_indices, as_index=True)
+    cluster_statistics = clusters[gene].agg(["mean", "var", "count"])
+    cluster_statistics.columns = ["mean", "variance", "count"]
+    return cluster_statistics

@@ -1,6 +1,7 @@
 # ignore data folder because files are so big. 
 /data
 
+/figures
 /.venv
 /__pycache__
-
+/.vscode

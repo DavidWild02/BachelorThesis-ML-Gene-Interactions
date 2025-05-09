@@ -70,6 +70,7 @@ scipy==1.15.2
 scs==3.2.7.post2
 seaborn==0.13.2
 session-info2==0.1.2
+setuptools==80.1.0
 six==1.17.0
 stack-data==0.6.3
 statsmodels==0.14.4
