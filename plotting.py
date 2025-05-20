@@ -55,3 +55,4 @@ def calculate_cluster_statistics_for_gene(adata, gene: str):
     cluster_statistics = clusters[gene].agg(["mean", "var", "count"])
     cluster_statistics.columns = ["mean", "variance", "count"]
     return cluster_statistics
+    
