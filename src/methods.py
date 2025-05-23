@@ -5,7 +5,7 @@ import pandas as pd
 import networkx as nx
 import torch
 
-from typing import List
+from typing import List, Literal
 
 from data_utils import extract_samples_of_cell_cluster
 
@@ -147,7 +147,9 @@ def create_transition_grn_graph(df_transitions: pd.DataFrame, df_data: pd.DataFr
 
     return graph
 
-def calculate_cell_activity_scores_along_path(adata, graph: nx.DiGraph, path_differentiation: List[str]):
+
+def calculate_cell_activity_scores_along_path(adata, graph: nx.DiGraph, path_differentiation: List[str] | pd.Index, 
+                                              strategy_target_expr_levels: Literal["from_group_a", "mean_shift"] = "from_group_a"):
     cell_activity_scores = pd.DataFrame(np.zeros(adata.X.shape), index=adata.obs_names, columns=adata.var_names)
 
     iter_path = iter(path_differentiation)
@@ -158,16 +160,20 @@ def calculate_cell_activity_scores_along_path(adata, graph: nx.DiGraph, path_dif
         group_a = graph.nodes[current_node]["attr"]
         group_b = graph.nodes[next_node]["attr"]
 
-        # TODO: is this a good idea?
-        mean_shift =  group_b.mean() - group_a.mean()
-        predicted_expression_levels_a = group_a + mean_shift 
+        if strategy_target_expr_levels == "mean_shift":
+            mean_shift =  group_b.mean() - group_a.mean()
+            target_expression_levels = group_a + mean_shift 
+        else:
+            target_expression_levels = group_a
 
-        activation_scores = activation_score_of_cells(predicted_expression_levels_a.values, grn)
+        activation_scores = activation_score_of_cells(target_expression_levels.values, grn)
         cell_activity_scores.loc[group_a.index, group_a.columns] = activation_scores
 
         current_node = next_node
 
     adata.layers["activity_score"] = cell_activity_scores
+    adata.uns["path_differentiation"] = path_differentiation
+
 
 
 
