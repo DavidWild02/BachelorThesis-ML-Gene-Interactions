@@ -1,6 +1,15 @@
 import numpy as np
 from tqdm import tqdm
+import scanpy as sc
+import pandas as pd
+import networkx as nx
 import torch
+
+from typing import List
+
+from data_utils import extract_samples_of_cell_cluster
+
+
 
 def mmc(x, y):
     """
@@ -81,8 +90,7 @@ def calculate_mmdd_similarity_matrix(cluster_a, cluster_b, sigma = 1.):
 
     return similarity_matrix.cpu().numpy()
 
-
-def activation_score(target_expression_levels, grn):
+def activation_score_of_cells(target_expression_levels, grn):
     _num_obs, num_target_genes = target_expression_levels.shape
     _num_driver_genes, num_target_genes = grn.shape
 
@@ -96,3 +104,70 @@ def activation_score(target_expression_levels, grn):
     area_under_curve = np.sum(np.cumsum(sorted_weights, axis=2) / num_target_genes, axis=2)
     total_weight = np.sum(sorted_weights, axis=2)
     return area_under_curve / total_weight
+
+def activation_score_of_group(mean_target_expression_levels, grn):
+    _num_driver_genes, num_target_genes = grn.shape
+    assert (mean_target_expression_levels.size == num_target_genes)
+
+    # normalize the rows by the target gene expression level
+    # (num_driver_genes, num_target_genes)
+    normalized_weights = grn[:, :] / mean_target_expression_levels[np.newaxis, :]
+    normalized_weights[normalized_weights == 0] = 1e-10 # to avoid divisions by zero
+    normalized_weights = np.abs(normalized_weights) # only consider the absolute value
+    # sort the rows
+    sorted_weights = np.sort(normalized_weights, axis=2)
+    area_under_curve = np.sum(np.cumsum(sorted_weights, axis=2) / num_target_genes, axis=2)
+    total_weight = np.sum(sorted_weights, axis=2)
+    return area_under_curve / total_weight
+
+
+def create_transition_grn_graph(df_transitions: pd.DataFrame, df_data: pd.DataFrame, clusters: pd.Series, 
+                                calculate_similarity_func, max_samples_per_cluster: int | None = 100, **kwargs):
+    num_cells, _num_genes = df_data.shape
+    assert (clusters.size == num_cells)
+
+    graph = nx.DiGraph()
+
+    for node in df_transitions.index:
+        node_cluster = extract_samples_of_cell_cluster(df_data, clusters, node)
+        graph.add_node(node, attr=node_cluster)
+
+        for neighbor in df_transitions.columns:
+            if df_transitions.loc[node, neighbor] == 0:
+                continue
+
+            neighbor_cluster = extract_samples_of_cell_cluster(df_data, clusters, neighbor)
+
+            if max_samples_per_cluster:
+                pass # TODO: randomly pick max num samples from cluster
+                # Needed if similarity function takes very long
+
+            similarity_matrix = calculate_similarity_func(node_cluster, neighbor_cluster, **kwargs)
+            graph.add_edge(node, neighbor, attr=similarity_matrix)            
+
+    return graph
+
+def calculate_cell_activity_scores_along_path(adata, graph: nx.DiGraph, path_differentiation: List[str]):
+    cell_activity_scores = pd.DataFrame(np.zeros(adata.X.shape), index=adata.obs_names, columns=adata.var_names)
+
+    iter_path = iter(path_differentiation)
+    current_node = next(iter_path)
+    for next_node in iter_path:
+        grn = graph.edges[current_node, next_node]["attr"]
+
+        group_a = graph.nodes[current_node]["attr"]
+        group_b = graph.nodes[next_node]["attr"]
+
+        # TODO: is this a good idea?
+        mean_shift =  group_b.mean() - group_a.mean()
+        predicted_expression_levels_a = group_a + mean_shift 
+
+        activation_scores = activation_score_of_cells(predicted_expression_levels_a.values, grn)
+        cell_activity_scores.loc[group_a.index, group_a.columns] = activation_scores
+
+        current_node = next_node
+
+    adata.layers["activity_score"] = cell_activity_scores
+
+
+
