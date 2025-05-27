@@ -27,15 +27,19 @@ model <- initialise_model(
     )
 )
 
-model <- generate_tf_network(model)
-model <- generate_feature_network(model)
-model <- generate_kinetics(model)
-model <- generate_cells(model)
+model <- model %>%
+    generate_tf_network() %>%
+    generate_feature_network() %>% 
+    generate_kinetics() %>%
+    generate_gold_standard() %>%
+    generate_cells() %>%
+    generate_experiment()
 
-write.csv(model$backbone$expression_patterns, file = "./data/sd_expression_patterns.csv", row.names = TRUE)
-write.csv(model$feature_info, file = "./data/sd_feature_info.csv", row.names = TRUE)
-write.csv(model$feature_network, file = "./data/sd_feature_network.csv", row.names = TRUE)
-write.csv(as.matrix(model$simulations$counts), file = "./data/sd_counts.csv", row.names = TRUE)
+write.csv(model$feature_info, file = "../data/sd_feature_info.csv", row.names = TRUE)
+write.csv(as.matrix(model$gold_standard$mod_changes), file = "../data/sd_expression_patterns.csv", row.names = TRUE)
+write.csv(as.matrix(model$gold_standard$network), file = "../data/sd_feature_network.csv", row.names = TRUE)
+write.csv(as.matrix(model$simulations$counts), file = "../data/sd_counts.csv", row.names = TRUE)
+write.csv(as.matrix(model$experiment$cell_info), file = "../data/sd_cell_info.csv", row.names = TRUE)
 
 # ad <- as_anndata(model)
 # ad$write_h5ad("./data/synthetic_dataset.h5ad")
