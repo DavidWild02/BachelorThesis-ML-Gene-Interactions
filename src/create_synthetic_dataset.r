@@ -35,11 +35,13 @@ model <- model %>%
     generate_cells() %>%
     generate_experiment()
 
+# Writing with anndata did not work for some reason. So try to export it as csv
 write.csv(model$feature_info, file = "../data/sd_feature_info.csv", row.names = TRUE)
-write.csv(as.matrix(model$gold_standard$mod_changes), file = "../data/sd_expression_patterns.csv", row.names = TRUE)
+write.csv(as.matrix(model$backbone$expression_patterns), file = "../data/sd_expression_patterns.csv", row.names = TRUE)
 write.csv(as.matrix(model$gold_standard$network), file = "../data/sd_feature_network.csv", row.names = TRUE)
-write.csv(as.matrix(model$simulations$counts), file = "../data/sd_counts.csv", row.names = TRUE)
+write.csv(as.matrix(model$experiment$counts_mrna), file = "../data/sd_counts_mrna.csv", row.names = TRUE)
 write.csv(as.matrix(model$experiment$cell_info), file = "../data/sd_cell_info.csv", row.names = TRUE)
+
 
 # ad <- as_anndata(model)
 # ad$write_h5ad("./data/synthetic_dataset.h5ad")
