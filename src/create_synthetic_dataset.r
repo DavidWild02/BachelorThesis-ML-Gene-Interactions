@@ -23,7 +23,7 @@ model <- initialise_model(
         census_interval = 2, 
         ssa_algorithm = ssa_etl(tau = 300/3600),
         experiment_params = simulation_type_wild_type(num_simulations = 10),
-        compute_cellwise_grn=TRUE
+        compute_cellwise_grn=FALSE
     )
 )
 
@@ -38,7 +38,7 @@ model <- model %>%
 # Writing with anndata did not work for some reason. So try to export it as csv
 write.csv(model$feature_info, file = "../data/sd_feature_info.csv", row.names = TRUE)
 write.csv(as.matrix(model$backbone$expression_patterns), file = "../data/sd_expression_patterns.csv", row.names = TRUE)
-write.csv(as.matrix(model$gold_standard$network), file = "../data/sd_feature_network.csv", row.names = TRUE)
+write.csv(as.matrix(model$feature_network), file = "../data/sd_feature_network.csv", row.names = TRUE)
 write.csv(as.matrix(model$experiment$counts_mrna), file = "../data/sd_counts_mrna.csv", row.names = TRUE)
 write.csv(as.matrix(model$experiment$cell_info), file = "../data/sd_cell_info.csv", row.names = TRUE)
 

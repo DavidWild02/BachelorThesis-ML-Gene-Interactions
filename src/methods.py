@@ -58,6 +58,11 @@ def mean_kernel_matrix(x, y, sigma = 1., device=None):
 def calculate_mmdd_similarity_matrix(cluster_a, cluster_b, sigma = 1.):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    if isinstance(cluster_a, pd.DataFrame):
+        cluster_a = cluster_a.values
+    if isinstance(cluster_b, pd.DataFrame):
+        cluster_b = cluster_b.values
+
     if isinstance(cluster_a, np.ndarray):
         cluster_a = torch.from_numpy(cluster_a).float()
     if isinstance(cluster_b, np.ndarray):
