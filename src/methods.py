@@ -9,14 +9,23 @@ from typing import List, Literal
 
 from data_utils import extract_samples_of_cell_cluster
 
+eta = 0.1e-10 # Used for avoiding divisions through zero
 
 
 def mmc(x, y):
     """
     Calculates the maximum mean change.
     """
-    eta = 0.1e-10 # Used for avoiding divisions through zero
     return (y - x)/(np.maximum(x, y) + eta)
+
+def calculate_relation_mean_change_matrix(cluster_a, cluster_b):
+    mean_cluster_a = np.mean(cluster_a, axis=0)
+    mean_cluster_b = np.mean(cluster_b, axis=0)
+    mean_diff = mean_cluster_a - mean_cluster_b
+    mean_diff[mean_diff == 0] = eta
+    relation_mean_diff = np.abs(mean_diff) / np.abs(mean_diff).T
+    correlation_direction = np.sign(mean_diff * mean_diff.T)
+    return correlation_direction * relation_mean_diff
 
 def score_similarity_relative_change(x, y):
     correlation_direction = np.sign(x * y)
@@ -120,9 +129,9 @@ def activation_score_of_group(mean_target_expression_levels, grn):
     normalized_weights[normalized_weights == 0] = 1e-10 # to avoid divisions by zero
     normalized_weights = np.abs(normalized_weights) # only consider the absolute value
     # sort the rows
-    sorted_weights = np.sort(normalized_weights, axis=2)
-    area_under_curve = np.sum(np.cumsum(sorted_weights, axis=2) / num_target_genes, axis=2)
-    total_weight = np.sum(sorted_weights, axis=2)
+    sorted_weights = np.sort(normalized_weights, axis=1)
+    area_under_curve = np.sum(np.cumsum(sorted_weights, axis=1) / num_target_genes, axis=1)
+    total_weight = np.sum(sorted_weights, axis=1)
     return area_under_curve / total_weight
 
 
